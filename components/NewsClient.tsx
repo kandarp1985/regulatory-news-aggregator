@@ -9,6 +9,20 @@ interface NewsClientProps {
   initialArticles: Article[];
 }
 
+type Range = 'today' | '7d' | '30d';
+
+const RANGE_LABELS: Record<Range, string> = {
+  today: 'Today',
+  '7d':  '7 Days',
+  '30d': '30 Days',
+};
+
+const RANGE_COLORS: Record<Range, string> = {
+  today: '#00e5ff',
+  '7d':  '#7c4dff',
+  '30d': '#f59e0b',
+};
+
 function SkeletonCard({ index = 0 }: { index?: number }) {
   const colors = ['#00e5ff', '#7c4dff', '#ff6b35', '#ff4d6d', '#00b4d8'];
   const accent = colors[index % colors.length];
@@ -22,9 +36,10 @@ function SkeletonCard({ index = 0 }: { index?: number }) {
         <div style={{ height: 20, width: 60, borderRadius: 4, background: `${accent}20`, border: `1px solid ${accent}30` }} />
         <div style={{ height: 14, width: 36, borderRadius: 3, background: '#0d2240' }} />
       </div>
-      {[100, 75, 85].slice(0, index % 3 + 1).map((w, i) => (
-        <div key={i} style={{ height: 18, borderRadius: 4, background: '#0d2240', width: `${w}%` }} />
-      ))}
+      <div style={{ height: 18, borderRadius: 4, background: '#0d2240' }} />
+      <div style={{ height: 18, borderRadius: 4, background: '#0d2240', width: '75%' }} />
+      <div style={{ height: 14, borderRadius: 3, background: '#0a1628' }} />
+      <div style={{ height: 14, borderRadius: 3, background: '#0a1628', width: '85%' }} />
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.25rem' }}>
         <div style={{ height: 12, width: 50, borderRadius: 3, background: '#091828' }} />
         <div style={{ height: 12, width: 65, borderRadius: 3, background: '#091828' }} />
@@ -40,31 +55,57 @@ export default function NewsClient({ initialArticles }: NewsClientProps) {
   const [fetchedAt, setFetchedAt] = useState<string | null>(null);
   const [selectedCountries, setSelectedCountries] = useState<string[]>(['US', 'UK', 'CA']);
   const [keyword, setKeyword] = useState('');
+  const [range, setRange] = useState<Range>('today');
+  const [isFetchingRange, setIsFetchingRange] = useState(false);
 
-  const fetchNews = useCallback(async () => {
-    try {
+  // Fetch articles for a specific date range
+  const fetchRange = useCallback(async (r: Range) => {
+    if (r === 'today') {
+      // Use initial articles (already loaded) — just refresh live
+      try {
+        setLoading(true);
+        const res = await fetch('/api/news');
+        if (!res.ok) throw new Error('Failed');
+        const data = await res.json();
+        setArticles(data.articles ?? []);
+        setFetchedAt(data.fetchedAt ?? new Date().toISOString());
+      } catch {
+        setError('Failed to refresh. Try again.');
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Historical range from Supabase
+      setIsFetchingRange(true);
       setLoading(true);
       setError(null);
-      const res = await fetch('/api/news');
-      if (!res.ok) throw new Error('Failed to fetch');
-      const data = await res.json();
-      setArticles(data.articles ?? []);
-      setFetchedAt(data.fetchedAt ?? new Date().toISOString());
-      (window as unknown as { __newsCount?: number }).__newsCount = data.articles?.length ?? 0;
-    } catch (err) {
-      setError('Failed to load feeds. Please try refreshing.');
-      console.error(err);
-    } finally {
-      setLoading(false);
+      try {
+        const res = await fetch(`/api/news?range=${r}`);
+        if (!res.ok) throw new Error('Failed');
+        const data = await res.json();
+        setArticles(data.articles ?? []);
+        setFetchedAt(data.fetchedAt ?? new Date().toISOString());
+      } catch {
+        setError(`Failed to load ${RANGE_LABELS[r]} articles.`);
+      } finally {
+        setLoading(false);
+        setIsFetchingRange(false);
+      }
     }
   }, []);
 
+  // Listen for manual refresh events
   useEffect(() => {
-    setFetchedAt(new Date().toISOString());
-    const handleRefresh = () => fetchNews();
+    const handleRefresh = () => fetchRange(range);
     window.addEventListener('news-refresh', handleRefresh);
     return () => window.removeEventListener('news-refresh', handleRefresh);
-  }, [fetchNews]);
+  }, [range, fetchRange]);
+
+  // When range changes, fetch new data
+  const handleRangeChange = (r: Range) => {
+    setRange(r);
+    fetchRange(r);
+  };
 
   const filteredArticles = (articles ?? []).filter((article: Article) => {
     if (!selectedCountries.includes(article.country)) return false;
@@ -87,6 +128,73 @@ export default function NewsClient({ initialArticles }: NewsClientProps) {
 
   return (
     <div style={{ maxWidth: 1240, margin: '0 auto', padding: '1rem 2rem 3rem' }}>
+
+      {/* ── Date Range Filter ── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '0.5rem',
+        marginBottom: '0.85rem', flexWrap: 'wrap',
+      }}>
+        <span style={{
+          fontFamily: "'Share Tech Mono', monospace", fontSize: '0.75rem',
+          color: '#2d5275', letterSpacing: '0.08em', textTransform: 'uppercase',
+          marginRight: '0.25rem',
+        }}>
+          Period:
+        </span>
+        {(['today', '7d', '30d'] as Range[]).map((r) => {
+          const active = range === r;
+          const color = RANGE_COLORS[r];
+          return (
+            <button
+              key={r}
+              onClick={() => handleRangeChange(r)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                padding: '0.35rem 0.9rem', borderRadius: 4,
+                border: `1px solid ${active ? color : '#1a3a5c'}`,
+                background: active ? `${color}14` : 'transparent',
+                color: active ? color : '#5a8aad',
+                fontFamily: "'Share Tech Mono', monospace",
+                fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.05em',
+                cursor: 'pointer', transition: 'all 0.18s ease',
+                boxShadow: active ? `0 0 10px ${color}30` : 'none',
+              }}
+              onMouseEnter={(e) => {
+                if (!active) {
+                  e.currentTarget.style.borderColor = color;
+                  e.currentTarget.style.color = color;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!active) {
+                  e.currentTarget.style.borderColor = '#1a3a5c';
+                  e.currentTarget.style.color = '#5a8aad';
+                }
+              }}
+            >
+              {active && <span style={{ color: color }}>◈</span>}
+              {RANGE_LABELS[r]}
+            </button>
+          );
+        })}
+
+        {/* Status dot */}
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          {isFetchingRange && (
+            <svg style={{ width: 14, height: 14, animation: 'spin 0.8s linear infinite', color: '#5a8aad' }} fill="none" viewBox="0 0 24 24">
+              <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path style={{ opacity: 0.75 }} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+          )}
+          <span style={{
+            fontFamily: "'Share Tech Mono', monospace", fontSize: '0.72rem',
+            color: '#2d5275', letterSpacing: '0.04em',
+          }}>
+            {range === 'today' ? 'Live' : range === '7d' ? 'Supabase' : 'Supabase'}
+          </span>
+        </div>
+      </div>
+
       <FilterBar
         selectedCountries={selectedCountries}
         onCountryChange={setSelectedCountries}
@@ -123,12 +231,10 @@ export default function NewsClient({ initialArticles }: NewsClientProps) {
             <span style={{ color: '#2d5275' }}>Loading articles...</span>
           ) : (
             <>
-              <span style={{ color: '#00e5ff' }}>◈ </span>
-              Showing{' '}
-              <span style={{ color: '#d8eeff', fontWeight: 700 }}>{filteredArticles.length}</span>
-              {' '}of{' '}
-              <span style={{ color: '#d8eeff', fontWeight: 700 }}>{articles.length}</span>
-              {' '}articles
+              <span style={{ color: RANGE_COLORS[range] }}>◈ </span>
+              {range === 'today'
+                ? `${filteredArticles.length} articles today`
+                : `${filteredArticles.length} articles — ${RANGE_LABELS[range]}`}
             </>
           )}
         </p>
@@ -137,17 +243,33 @@ export default function NewsClient({ initialArticles }: NewsClientProps) {
             fontFamily: "'Share Tech Mono', monospace",
             fontSize: '0.75rem', color: '#2d5275', letterSpacing: '0.04em',
           }}>
-            Last updated: {formatFetchedAt(fetchedAt)}
+            {range === 'today' ? 'Live · ' : 'Archived · '}{formatFetchedAt(fetchedAt)}
           </p>
         )}
       </div>
+
+      {/* Empty state: no archived data yet */}
+      {!loading && range !== 'today' && filteredArticles.length === 0 && (
+        <div style={{
+          textAlign: 'center', padding: '2.5rem 1rem',
+          background: '#060e1a', border: '1px dashed #1a3a5c', borderRadius: 6,
+          marginBottom: '1rem',
+        }}>
+          <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: '0.9rem', color: '#2d5275', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>
+            No archived data for this period yet.
+          </p>
+          <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: '0.82rem', color: '#1a3a5c', lineHeight: 1.5 }}>
+            The cron job archives articles daily at midnight. Check back after the first run.
+          </p>
+        </div>
+      )}
 
       {/* Article grid */}
       {loading ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1rem' }}>
           {Array.from({ length: 9 }).map((_, i) => <SkeletonCard key={i} index={i} />)}
         </div>
-      ) : filteredArticles.length === 0 ? (
+      ) : filteredArticles.length === 0 && range === 'today' ? (
         <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
           <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: '1rem', color: '#2d5275', letterSpacing: '0.04em' }}>
             No articles match your current filters.
