@@ -165,7 +165,7 @@ export default function BookmarksPage() {
               <button
                 onClick={handleClearAll}
                 style={{
-                  flex: 1, padding: '0.5rem', borderRadius: 4, border: 'none',
+                  flex: 1, padding: '0.5rem', borderRadius: 4,
                   background: 'rgba(255, 77, 109, 0.15)',
                   border: '1px solid rgba(255, 77, 109, 0.4)',
                   color: '#ff4d6d',
