@@ -19,6 +19,20 @@ interface FilterBarProps {
 
 const STORAGE_KEY = 'reg-filters';
 
+const COUNTRY_CONFIG: Record<string, { label: string; flag: string; color: string }> = {
+  US: { label: 'US', flag: '🇺🇸', color: '#00e5ff' },
+  UK: { label: 'UK', flag: '🇬🇧', color: '#7c4dff' },
+  CA: { label: 'CA', flag: '🇨🇦', color: '#ff6b35' },
+};
+
+const SECTION_LABELS: Record<string, string> = {
+  'Drug Actions': '#ff4d6d',
+  'Safety': '#f59e0b',
+  'Biologics': '#00b4d8',
+  'Regulatory': '#7c4dff',
+  'Public Health': '#06d6a0',
+};
+
 export default function FilterBar({
   selectedCountries,
   onCountryChange,
@@ -32,16 +46,10 @@ export default function FilterBar({
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const { countries, keyword: savedKeyword } = JSON.parse(saved);
-        if (countries && Array.isArray(countries)) {
-          onCountryChange(countries);
-        }
-        if (savedKeyword) {
-          onKeywordChange(savedKeyword);
-        }
+        if (countries && Array.isArray(countries)) onCountryChange(countries);
+        if (savedKeyword) onKeywordChange(savedKeyword);
       }
-    } catch {
-      // Ignore errors
-    }
+    } catch { /* ignore */ }
   }, []);
 
   const toggleCountry = (country: string) => {
@@ -58,11 +66,7 @@ export default function FilterBar({
   };
 
   const saveFilters = (countries: string[], kw: string) => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ countries, keyword: kw }));
-    } catch {
-      // Ignore errors
-    }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ countries, keyword: kw })); } catch { /* ignore */ }
   };
 
   const selectChip = (chipKeyword: string) => {
@@ -72,55 +76,97 @@ export default function FilterBar({
   };
 
   return (
-    <div className="sticky top-16 z-40 bg-white/95 backdrop-blur-sm border-b border-gray-200 dark:bg-gray-900/95 dark:border-gray-700 py-3">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-3">
-        {/* Country filters */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Country:</span>
-          {['US', 'UK', 'CA'].map((country) => {
-            const flags: Record<string, string> = { US: '🇺🇸', UK: '🇬🇧', CA: '🇨🇦' };
-            const labels: Record<string, string> = { US: 'US', UK: 'UK', CA: 'Canada' };
-            const isSelected = selectedCountries.includes(country);
+    <div style={{
+      position: 'sticky', top: 80, zIndex: 90,
+      background: 'rgba(3, 8, 16, 0.88)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      borderBottom: '1px solid #0d2240',
+      padding: '0.85rem 2rem',
+    }}>
+      <div style={{ maxWidth: 1240, margin: '0 auto' }}>
+
+        {/* Country filters row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.65rem' }}>
+          <span style={{
+            fontFamily: "'Share Tech Mono', monospace", fontSize: '0.78rem',
+            color: '#5a8aad', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase',
+          }}>
+            Country:
+          </span>
+
+          {Object.entries(COUNTRY_CONFIG).map(([code, cfg]) => {
+            const isSelected = selectedCountries.includes(code);
+            const accent = cfg.color;
             return (
               <button
-                key={country}
-                onClick={() => toggleCountry(country)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  isSelected
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-                    : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
-                }`}
+                key={code}
+                onClick={() => toggleCountry(code)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                  padding: '0.35rem 0.85rem', borderRadius: 4,
+                  border: `1px solid ${isSelected ? accent : '#1a3a5c'}`,
+                  background: isSelected ? `${accent}14` : 'transparent',
+                  color: isSelected ? accent : '#5a8aad',
+                  fontFamily: "'Share Tech Mono', monospace",
+                  fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.04em',
+                  cursor: 'pointer', transition: 'all 0.18s ease',
+                  boxShadow: isSelected ? `0 0 8px ${accent}30` : 'none',
+                }}
               >
-                {flags[country]} {labels[country]}
+                <span>{cfg.flag}</span>
+                <span>{cfg.label}</span>
               </button>
             );
           })}
         </div>
 
-        {/* Keyword search */}
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 max-w-md">
+        {/* Search row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ position: 'relative', flex: 1, maxWidth: 360 }}>
+            <svg
+              style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: '#5a8aad', pointerEvents: 'none' }}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
             <input
               type="text"
               value={keyword}
               onChange={(e) => handleKeywordChange(e.target.value)}
               onFocus={() => setShowChips(true)}
               placeholder="Search articles..."
-              className="w-full px-4 py-2 pl-10 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              style={{
+                width: '100%', padding: '0.45rem 0.75rem 0.45rem 2.25rem',
+                fontSize: '0.85rem', fontFamily: "'Share Tech Mono', monospace",
+                borderRadius: 4, border: '1px solid #1a3a5c',
+                background: '#060e1a', color: '#d8eeff',
+                outline: 'none', transition: 'border-color 0.18s ease, box-shadow 0.18s ease',
+                letterSpacing: '0.02em',
+              }}
+              onFocusCapture={(e) => {
+                e.currentTarget.style.borderColor = '#00e5ff';
+                e.currentTarget.style.boxShadow = '0 0 8px rgba(0, 229, 255, 0.2)';
+              }}
+              onBlurCapture={(e) => {
+                e.currentTarget.style.borderColor = '#1a3a5c';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
             />
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
           </div>
+
           {keyword && (
             <button
               onClick={() => handleKeywordChange('')}
-              className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              style={{
+                padding: '0.45rem 0.75rem', fontSize: '0.78rem',
+                fontFamily: "'Share Tech Mono', monospace",
+                color: '#5a8aad', background: 'transparent',
+                border: '1px solid #1a3a5c', borderRadius: 4, cursor: 'pointer',
+                transition: 'all 0.15s ease', letterSpacing: '0.04em',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#00e5ff'; e.currentTarget.style.color = '#00e5ff'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#1a3a5c'; e.currentTarget.style.color = '#5a8aad'; }}
             >
               Clear
             </button>
@@ -129,16 +175,42 @@ export default function FilterBar({
 
         {/* Quick filter chips */}
         {showChips && (
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 space-y-3">
+          <div style={{
+            marginTop: '0.65rem', padding: '0.75rem 1rem',
+            background: '#060e1a', border: '1px solid #0d2240', borderRadius: 6,
+          }}>
             {QUICK_FILTERS.map((group) => (
-              <div key={group.category}>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{group.category}</p>
-                <div className="flex flex-wrap gap-1.5">
+              <div key={group.category} style={{ marginBottom: '0.65rem' }}>
+                <p style={{
+                  fontFamily: "'Share Tech Mono', monospace", fontSize: '0.7rem',
+                  fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+                  color: SECTION_LABELS[group.category] || '#5a8aad',
+                  marginBottom: '0.5rem',
+                }}>
+                  {group.category}
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
                   {group.keywords.map((kw) => (
                     <button
                       key={kw}
                       onClick={() => selectChip(kw)}
-                      className="px-2.5 py-1 text-xs rounded-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
+                      style={{
+                        padding: '0.2rem 0.6rem', fontSize: '0.72rem',
+                        fontFamily: "'Share Tech Mono', monospace",
+                        borderRadius: 3, border: '1px solid #1a3a5c',
+                        background: '#0a1628', color: '#8fa3be',
+                        cursor: 'pointer', transition: 'all 0.15s ease', letterSpacing: '0.03em',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = '#00e5ff';
+                        e.currentTarget.style.color = '#00e5ff';
+                        e.currentTarget.style.boxShadow = '0 0 6px rgba(0, 229, 255, 0.2)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = '#1a3a5c';
+                        e.currentTarget.style.color = '#8fa3be';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
                     >
                       {kw}
                     </button>

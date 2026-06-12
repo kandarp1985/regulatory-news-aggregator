@@ -1,19 +1,6 @@
 import type { Metadata } from 'next';
-import { IBM_Plex_Sans, IBM_Plex_Serif } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/Header';
-
-const ibmPlexSans = IBM_Plex_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-sans',
-});
-
-const ibmPlexSerif = IBM_Plex_Serif({
-  subsets: ['latin'],
-  weight: ['400', '600', '700'],
-  variable: '--font-serif',
-});
 
 export const metadata: Metadata = {
   title: 'Regulatory Affairs News Aggregator',
@@ -26,19 +13,37 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${ibmPlexSans.variable} ${ibmPlexSerif.variable}`}>
-      <body className="font-sans bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
+    <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@400;600;700;800&display=swap" rel="stylesheet" />
+      </head>
+      <body>
         <Header />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <main style={{ minHeight: 'calc(100vh - 80px)' }}>
           {children}
         </main>
-        <footer className="border-t border-gray-200 dark:border-gray-700 mt-12 py-6">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-gray-500 dark:text-gray-400">
-            <p>Regulatory Affairs News Aggregator</p>
-            <p className="mt-1">
-              Sources: FDA • CDC • NIH • MHRA • UKHSA • Health Canada • PHAC
-            </p>
-          </div>
+        <footer style={{
+          borderTop: '1px solid #0d2240',
+          padding: '1.5rem 2rem',
+          textAlign: 'center',
+          background: 'rgba(3, 8, 16, 0.8)',
+          backdropFilter: 'blur(10px)',
+        }}>
+          <p style={{
+            fontFamily: "'Share Tech Mono', monospace",
+            fontSize: '0.78rem', color: '#2d5275', letterSpacing: '0.06em',
+          }}>
+            Regulatory Affairs News Aggregator
+          </p>
+          <p style={{
+            fontFamily: "'Share Tech Mono', monospace",
+            fontSize: '0.68rem', color: '#1a3a5c', letterSpacing: '0.08em',
+            marginTop: '0.35rem',
+          }}>
+            Sources: FDA · CDC · NIH · MHRA · UKHSA · Health Canada · PHAC
+          </p>
         </footer>
       </body>
     </html>

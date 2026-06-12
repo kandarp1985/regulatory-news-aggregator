@@ -1,39 +1,122 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@400;600;700;800&display=swap');
 
-@layer base {
-  html {
-    @apply antialiased;
-  }
-
-  body {
-    @apply bg-gray-50 text-gray-900;
-  }
-
-  .dark body {
-    @apply bg-gray-900 text-gray-100;
-  }
+/* ── CSS Variables ── */
+:root {
+  --bg-primary: #030810;
+  --bg-card: #060e1a;
+  --bg-card-hover: #0a1628;
+  --border: #0d2240;
+  --border-bright: #1a3a5c;
+  --accent-us: #00e5ff;
+  --accent-uk: #7c4dff;
+  --accent-ca: #ff6b35;
+  --accent-fda: #ff4d6d;
+  --accent-cdc: #00b4d8;
+  --accent-nih: #4cc9f0;
+  --accent-mhra: #7b68ee;
+  --accent-hc: #ff9f1c;
+  --accent-ukhsa: #06d6a0;
+  --accent-phac: #f4a261;
+  --text-primary: #d8eeff;
+  --text-secondary: #5a8aad;
+  --text-muted: #2d5275;
 }
 
-@layer components {
-  .line-clamp-2 {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .line-clamp-3 {
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
+/* ── Base reset ── */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Exo 2', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.65;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* ── Background grid ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 229, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Scan-line overlay ── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.05) 2px,
+    rgba(0, 0, 0, 0.05) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── Keep content above bg effects ── */
+#__next,
+main,
+header,
+footer,
+nav,
+a,
+button,
+input,
+div,
+span,
+p,
+h1,
+h2,
+section,
+article {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb {
+  background: var(--border-bright);
+  border-radius: 3px;
+}
+
+/* ── Focus states ── */
+:focus-visible {
+  outline: 2px solid var(--accent-us);
+  outline-offset: 2px;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.25);
+}
+
+/* ── Animations ── */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
 }
